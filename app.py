@@ -1,4 +1,5 @@
 from flask import Flask, request
+import os
 
 app = Flask(__name__)
 
@@ -15,3 +16,8 @@ def generar_mail():
 def revisar_msj():
     # lógica para revisar correos
     return {"mensaje": "Sin nuevos correos"}
+
+# ⚠️ ESTA PARTE ES LA QUE DEBES AGREGAR
+if name == '__main__':
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
