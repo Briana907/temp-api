@@ -18,6 +18,6 @@ def revisar_msj():
     return {"mensaje": "Sin nuevos correos"}
 
 # ⚠️ ESTA PARTE ES LA QUE DEBES AGREGAR
-if name == '__main__':
+if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
