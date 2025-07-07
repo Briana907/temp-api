@@ -3,7 +3,7 @@ import requests
 import os
 
 app = Flask(__name__)
-temp_sessions = {}  # Sesiones temporales por IP o dirección
+temp_sessions = {}
 
 @app.route('/')
 def home():
@@ -12,7 +12,7 @@ def home():
 @app.route('/mail', methods=['GET'])
 def generar_mail():
     try:
-        resp = requests.post(
+        r = requests.post(
             "https://dropmail.me/api/graphql",
             headers={"Content-Type": "application/json"},
             json={
@@ -20,13 +20,15 @@ def generar_mail():
             }
         )
 
-        data = resp.json()
+        # Validación básica de la respuesta
+        if r.status_code != 200 or not r.content:
+            return jsonify({"error": "❌ Dropmail no respondió o está inactivo."}), 500
+
+        data = r.json()
         session_id = data["data"]["introduceSession"]["id"]
         address = data["data"]["introduceSession"]["addresses"][0]["address"]
 
-        # Guardar en memoria por ahora
         temp_sessions[address] = session_id
-
         return jsonify({"email": address})
 
     except Exception as e:
@@ -35,7 +37,6 @@ def generar_mail():
 @app.route('/msj', methods=['GET'])
 def revisar_msj():
     try:
-        # Obtener correo desde el parámetro ?email=
         email = request.args.get("email")
         if not email:
             return jsonify({"error": "❌ No se especificó el correo."}), 400
@@ -44,8 +45,7 @@ def revisar_msj():
         if not session_id:
             return jsonify({"mensaje": "⚠️ No se encontró sesión activa para ese correo."})
 
-        # Consultamos mensajes con la sesión
-        resp = requests.post(
+        r = requests.post(
             "https://dropmail.me/api/graphql",
             headers={"Content-Type": "application/json"},
             json={
@@ -53,14 +53,17 @@ def revisar_msj():
             }
         )
 
-        data = resp.json()
+        if r.status_code != 200 or not r.content:
+            return jsonify({"error": "❌ Fallo al obtener mensajes."}), 500
+
+        data = r.json()
         mails = data["data"]["session"]["mails"]
 
         if not mails:
             return jsonify({"mensaje": "📭 Sin nuevos correos"})
 
-        mensajes = "\n\n".join(m["rawText"] for m in mails)
-        return jsonify({"mensaje": mensajes})
+        texto = "\n\n".join(m["rawText"] for m in mails)
+        return jsonify({"mensaje": texto})
 
     except Exception as e:
         return jsonify({"error": f"❌ Error al revisar mensajes: {str(e)}"}), 500
